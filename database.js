@@ -1,27 +1,33 @@
 // database.js
-const Database = require('better-sqlite3');
-const path = require('path');
+const mongoose = require('mongoose');
 
-const db = new Database(path.join(__dirname, 'locations.db'));
+// تعريف Schema للموقع
+const locationSchema = new mongoose.Schema({
+  latitude: {
+    type: Number,
+    required: true,
+  },
+  longitude: {
+    type: Number,
+    required: true,
+  },
+  accuracy: Number,
+  location_name: String,
+  ip_address: String,
+}, {
+  timestamps: { createdAt: 'timestamp', updatedAt: false }
+});
 
-// إنشاء الجدول إذا لم يكن موجوداً (مع العمود الجديد)
-db.exec(`
-  CREATE TABLE IF NOT EXISTS locations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    latitude REAL NOT NULL,
-    longitude REAL NOT NULL,
-    accuracy REAL,
-    location_name TEXT,
-    timestamp TEXT NOT NULL DEFAULT (datetime('now')),
-    ip_address TEXT
-  )
-`);
+const Location = mongoose.model('Location', locationSchema);
 
-// إضافة عمود location_name إذا كان الجدول قديماً ولا يحتويه (آمن للتشغيل عدة مرات)
-try {
-  db.exec(`ALTER TABLE locations ADD COLUMN location_name TEXT`);
-} catch (e) {
-  // العمود موجود مسبقاً، لا مشكلة
+async function connectDB() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    console.error('MONGODB_URI غير معرف في متغيرات البيئة');
+    process.exit(1);
+  }
+  await mongoose.connect(uri);
+  console.log('تم الاتصال بقاعدة البيانات MongoDB Atlas');
 }
 
-module.exports = db;
+module.exports = { Location, connectDB };
